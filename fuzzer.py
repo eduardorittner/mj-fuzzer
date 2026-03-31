@@ -48,10 +48,9 @@ def convert_bnf_symbols(bnf_symbols: Dict[str, BnfNonTerminal]) -> Dict[str, Sym
                     symbol_names.append(symbol_obj.name)
                 # Handle Modifier objects (we'll treat the symbols inside modifiers as regular symbols)
                 elif isinstance(symbol_obj, Modifier):
-                    # For simplicity, we'll just add the first symbol from the modifier
-                    # In a more complete implementation, we would handle the modifier logic
-                    if symbol_obj.symbols:
-                        symbol_names.append(symbol_obj.symbols[0].name)
+                    # Add all symbols from the modifier, not just the first one
+                    for inner_symbol in symbol_obj.symbols:
+                        symbol_names.append(inner_symbol.name)
             production_rules.append(ProductionRule(symbols=symbol_names))
         
         fuzzer_symbols[name] = NonTerminal(name=name, rules=production_rules)
