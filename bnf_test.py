@@ -1,12 +1,12 @@
 from bnf import BnfParser
-from bnf_ast import *
+from symbols import ModifierType, ProductionRule
 
 
 def test_rule_name_parsing():
     parser = BnfParser("<hello> world!")
 
     rule = parser.rule_name()
-    assert rule.name == "hello"
+    assert rule == "hello"
     assert parser.input == " world!"
 
 
@@ -21,7 +21,7 @@ def test_terminal_parsing():
     parser = BnfParser('"{" other symbols')
 
     terminal = parser.terminal()
-    assert terminal.name == "{"
+    assert terminal == "{"
     assert parser.input == " other symbols"
 
 
@@ -30,8 +30,8 @@ def test_production_rule():
 
     first_rule = parser.production_rule()
     assert first_rule.symbols == [
-        SymbolReference("terminal", SymbolType.TERMINAL),
-        SymbolReference("non-terminal", SymbolType.NONTERMINAL),
+        "terminal",
+        "non-terminal",
     ]
 
     assert parser.input == "<not-parsed>"
@@ -45,10 +45,10 @@ def test_production_rules():
     assert 2 == len(rules)
 
     assert rules[0].symbols == [
-        SymbolReference("terminal", SymbolType.TERMINAL),
-        SymbolReference("non-terminal", SymbolType.NONTERMINAL),
+        "terminal",
+        "non-terminal",
     ]
-    assert rules[1].symbols == [SymbolReference("second-rule", SymbolType.NONTERMINAL)]
+    assert rules[1].symbols == ["second-rule"]
     assert parser.input == "other-thing"
 
 
@@ -66,12 +66,10 @@ def test_rule():
     assert 2 == len(rule.rules)
 
     assert rule.rules[0].symbols == [
-        SymbolReference("terminal", SymbolType.TERMINAL),
-        SymbolReference("non-terminal", SymbolType.NONTERMINAL),
+        "terminal",
+        "non-terminal",
     ]
-    assert rule.rules[1].symbols == [
-        SymbolReference("other-terminal", SymbolType.TERMINAL)
-    ]
+    assert rule.rules[1].symbols == ["other-terminal"]
     assert parser.input == ""
     assert parser.symbols["rule-name"] == rule
 
@@ -81,8 +79,8 @@ def test_parse_modifier():
 
     modifier = parser.modifier()
 
-    assert modifier.symbols[0] == SymbolReference("hello", SymbolType.NONTERMINAL)
-    assert modifier.symbols[1] == SymbolReference("world!", SymbolType.TERMINAL)
+    assert modifier.symbols[0] == "hello"
+    assert modifier.symbols[1] == "world!"
     assert modifier.type == ModifierType.ZERO_OR_MORE
 
 
@@ -98,16 +96,14 @@ def test_parse_full():
     parser.parse()
 
     assert parser.symbols["rule1"].rules[0].symbols == [
-        SymbolReference("terminal", SymbolType.TERMINAL),
-        SymbolReference("non-terminal", SymbolType.NONTERMINAL),
+        "terminal",
+        "non-terminal",
     ]
-    assert parser.symbols["rule1"].rules[1].symbols == [
-        SymbolReference("other-terminal", SymbolType.TERMINAL),
-    ]
+    assert parser.symbols["rule1"].rules[1].symbols == ["other-terminal"]
     assert parser.symbols["rule2"].rules[0].symbols == [
-        SymbolReference("hello", SymbolType.NONTERMINAL),
-        SymbolReference(", ", SymbolType.TERMINAL),
-        SymbolReference("world", SymbolType.NONTERMINAL),
+        "hello",
+        ", ",
+        "world",
     ]
 
 

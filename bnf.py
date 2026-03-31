@@ -1,5 +1,5 @@
-from bnf_ast import *
-from typing import Dict, List, Set
+from symbols import NonTerminal, Terminal, ProductionRule, Modifier, ModifierType
+from typing import Dict, List, Set, Union
 
 
 class BnfParser:
@@ -67,7 +67,7 @@ class BnfParser:
         else:
             raise ValueError("Modifier should end with '*', '?' or '+'")
 
-    def rule_name(self) -> SymbolReference:
+    def rule_name(self) -> str:
         if self.input[0] != "<":
             raise ValueError("Rule name must start with '<'")
 
@@ -76,7 +76,7 @@ class BnfParser:
         rule_name = self.input[1:end]
         self.input = self.input[end + 1 :]
 
-        return SymbolReference(rule_name, SymbolType.NONTERMINAL)
+        return rule_name
 
     def assignment(self):
         pattern = "::="
@@ -89,14 +89,14 @@ class BnfParser:
         self.assignment()
         rules = self.production_rules()
 
-        rule = NonTerminal(name.name, rules)
+        rule = NonTerminal(name, rules)
 
-        if self.symbols.get(name.name) is None:
-            self.symbols[name.name] = rule
+        if self.symbols.get(name) is None:
+            self.symbols[name] = rule
 
         return rule
 
-    def terminal(self) -> SymbolReference:
+    def terminal(self) -> str:
         if self.input[0] != '"':
             raise ValueError("Terminal should start with '\"'")
 
@@ -107,12 +107,14 @@ class BnfParser:
         self.input = self.input[end + 1 :]
 
         # Create terminal symbol if it doesn't exist
+        # Note: we use the name as the key and a Terminal object
+        # but in production rules we just use the name string
         if self.symbols.get(name) is None:
             self.terminals.add(Terminal(name))
 
-        return SymbolReference(name, SymbolType.TERMINAL)
+        return name
 
-    def production_rules(self) -> List[Rule]:
+    def production_rules(self) -> List[ProductionRule]:
         rules = []
 
         while True:
@@ -132,8 +134,8 @@ class BnfParser:
 
         return rules
 
-    def production_rule(self) -> Rule:
-        symbols = []
+    def production_rule(self) -> ProductionRule:
+        symbols: List[Union[str, Modifier]] = []
 
         # Process symbols until we reach the end of the rule
         while self.input and self.input[0] not in ["\n", "\r", "|"]:
@@ -148,7 +150,7 @@ class BnfParser:
             elif self.input[0] == "{":
                 symbols.append(self.modifier())
             else:
-                raise ValueError()
+                break  # might be end of rule or unexpected char
 
         # Skip to the end of the line
         line_end = self.input.find("\n")
@@ -157,4 +159,4 @@ class BnfParser:
         else:
             self.input = ""
 
-        return Rule(symbols)
+        return ProductionRule(symbols)
