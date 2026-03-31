@@ -25,7 +25,7 @@ class ProductionRule(Symbol):
             # Add space between symbols for readability
             if result:
                 result += " "
-            result += fuzzer.expand_symbol(symbol_name, depth)
+            result += fuzzer.expand_symbol(symbol_name, depth + 1)
         return result
 
 
@@ -52,4 +52,4 @@ class NonTerminal(Symbol):
         
         # Choose a random production rule
         rule = random.choice(self.rules)
-        return rule.generate(fuzzer, depth)
+        return rule.generate(fuzzer, depth + 1)

@@ -106,7 +106,7 @@
 <identifier> ::= <ID>
 
 <statement> ::= <compound_statement>
-              | <expresssion_statement>
+              | <expression_statement>
               | <if_statement>
               | <while_statement>
               | <for_statement>
@@ -116,7 +116,7 @@
 
 <compound_statement> ::= "{" {<compound_declaration>}* {<statement>}* "}"
 
-<expresssion_statement> ::= <expression> ";"
+<expression_statement> ::= <expression> ";"
 
 <if_statement> ::= "if" "(" <expression> ")" <statement>
                  | "if" "(" <expression> ")" <statement> "else" <statement>
