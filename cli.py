@@ -55,13 +55,19 @@ def main():
                 # Generate source code
                 output = fuzzer.generate_program()
 
-            if args.output:
-                with open(args.output, "w") as f:
-                    f.write(output)
-            else:
-                if args.count > 1:
+            if args.count > 1:
+                if args.output:
+                    file_name = f"{args.output}-{i}.mj"
+                    print(f"saving to {file_name}")
+                    with open(file_name, "w") as f:
+                        f.write(output)
+                else:
                     print(f"--- Program {i+1} ---")
-                print(output)
+                    print(output)
+            else:
+                if args.output:
+                    with open(args.output, "w") as f:
+                        f.write(output)
 
     except FileNotFoundError:
         print(f"Error: Grammar file '{args.grammar}' not found", file=sys.stderr)
