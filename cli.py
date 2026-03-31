@@ -28,12 +28,6 @@ def main():
         help="Number of programs to generate (default: 1)",
     )
     parser.add_argument(
-        "--command",
-        "-c",
-        type=str,
-        help="Command to call the compiler",
-    )
-    parser.add_argument(
         "--ast", action="store_true", help="Generate AST instead of source code"
     )
 
@@ -41,7 +35,6 @@ def main():
 
     try:
         # Read the grammar file
-
         with open(args.grammar, "r") as f:
             bnf_text = f.read()
 
@@ -62,22 +55,13 @@ def main():
                 # Generate source code
                 output = fuzzer.generate_program()
 
-            # Output the result
-            if args.command:
-                if args.output:
-                    with open(args.output, "w") as f:
-                        f.write(output)
-                    subprocess.run(args.command, capture_output=True)
-                else:
-                    raise ValueError("Need output file in order to call compiler")
+            if args.output:
+                with open(args.output, "w") as f:
+                    f.write(output)
             else:
-                if args.output:
-                    with open(args.output, "w") as f:
-                        f.write(output)
-                else:
-                    if args.count > 1:
-                        print(f"--- Program {i+1} ---")
-                    print(output)
+                if args.count > 1:
+                    print(f"--- Program {i+1} ---")
+                print(output)
 
     except FileNotFoundError:
         print(f"Error: Grammar file '{args.grammar}' not found", file=sys.stderr)
