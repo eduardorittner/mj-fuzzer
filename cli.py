@@ -68,6 +68,8 @@ def main():
                 if args.output:
                     with open(args.output, "w") as f:
                         f.write(output)
+                else:
+                    print(output)
 
     except FileNotFoundError:
         print(f"Error: Grammar file '{args.grammar}' not found", file=sys.stderr)
