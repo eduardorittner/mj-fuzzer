@@ -125,37 +125,44 @@ class Fuzzer:
 
     def _calculate_distance_to_terminals(
         self, symbol_obj: Union[str, Modifier], visited: Optional[set[str]] = None
-    ) -> int:
+    ) -> Optional[int]:
         """
-        Calculate the minimum distance from a symbol to terminal symbols using DFS.
+        Calculates the minimum derivation depth required for a symbol to reach terminals.
+
+        This method uses a Recursive Depth-First Search (DFS) traversal of the grammar's
+        AND-OR graph.
+        - Non-terminal symbols act as OR nodes (minimum depth across all production rules).
+        - Production rules and Modifiers act as AND nodes (maximum depth across all constituent symbols).
 
         :param symbol_obj: Name of the symbol or a Modifier to calculate distance for
         :param visited: Set of visited symbols to prevent infinite recursion
-        :return: Minimum distance to terminal symbols (0 for terminals, infinity for undefined)
+        :return: Minimum derivation depth (0 for terminals, None for unreachable/infinite)
         """
         if visited is None:
             visited = set()
 
         if isinstance(symbol_obj, Modifier):
-            # For modifiers, distance is the max distance of any symbol inside it
+            # For modifiers (AND nodes), distance is the max distance of any symbol inside it
             max_dist = 0
             for inner_symbol in symbol_obj.symbols:
                 dist = self._calculate_distance_to_terminals(
                     inner_symbol, visited.copy()
                 )
+                if dist is None:
+                    return None
                 max_dist = max(max_dist, dist)
             return max_dist
 
         symbol_name = symbol_obj
 
-        # Prevent infinite recursion
+        # Prevent infinite recursion (cycle detection)
         if symbol_name in visited:
-            return float("inf")
+            return None
 
         # Look up the symbol
         symbol = self.symbols.get(symbol_name)
 
-        # If symbol not found, return infinity (can't reach terminals)
+        # If symbol not found, return None (can't reach terminals)
         if symbol is None:
             # Check if it's one of the hardcoded symbols
             if symbol_name in [
@@ -169,39 +176,40 @@ class Fuzzer:
                 "boolean_literal",
             ]:
                 return 0
-            return float("inf")
+            return None
 
         # For terminals, distance is 0
         if isinstance(symbol, Terminal):
             return 0
 
-        # For non-terminals, calculate minimum distance through all rules
+        # For non-terminals (OR nodes), calculate minimum distance through all rules
         if isinstance(symbol, NonTerminal) and symbol.rules:
             visited.add(symbol_name)
-            min_distance = float("inf")
+            min_nt_distance: Optional[int] = None
 
-            # For each rule, calculate the maximum distance through its symbols
-            # (since all symbols in a rule must be expanded)
+            # For each rule (AND nodes), calculate the maximum distance through its symbols
             for rule in symbol.rules:
-                max_rule_distance = 0
+                max_rule_distance: Optional[int] = 0
                 for rule_symbol in rule.symbols:
                     # Calculate distance for this symbol and add 1 for the expansion step
-                    distance = (
-                        self._calculate_distance_to_terminals(
-                            rule_symbol, visited.copy()
-                        )
-                        + 1
+                    dist = self._calculate_distance_to_terminals(
+                        rule_symbol, visited.copy()
                     )
-                    # Take the maximum distance in this rule (worst case)
-                    max_rule_distance = max(max_rule_distance, distance)
+                    if dist is None:
+                        max_rule_distance = None
+                        break
+
+                    max_rule_distance = max(max_rule_distance, dist + 1)
+
                 # Take the minimum distance across all rules (best choice)
-                min_distance = min(min_distance, max_rule_distance)
+                if max_rule_distance is not None:
+                    if min_nt_distance is None or max_rule_distance < min_nt_distance:
+                        min_nt_distance = max_rule_distance
 
             visited.remove(symbol_name)
-            return min_distance if min_distance != float("inf") else float("inf")
+            return min_nt_distance
 
-        # For undefined symbols, return infinity
-        return float("inf")
+        return None
 
     def _choose_best_rule_at_limit(
         self, symbol: NonTerminal, symbol_name: str
@@ -217,28 +225,32 @@ class Fuzzer:
             raise ValueError("Non-terminal has no rules")
 
         # Calculate distance to terminals for each rule
-        rule_distances = []
+        rule_distances: List[Optional[int]] = []
         for rule in symbol.rules:
-            max_distance = 0
+            max_distance: Optional[int] = 0
             for rule_symbol in rule.symbols:
-                distance = self._calculate_distance_to_terminals(rule_symbol)
-                max_distance = max(max_distance, distance)
+                dist = self._calculate_distance_to_terminals(rule_symbol)
+                if dist is None:
+                    max_distance = None
+                    break
+                max_distance = max(max_distance, dist)
             rule_distances.append(max_distance)
 
-        # Choose the rule with the minimum distance to terminals
-        # If multiple rules have the same distance, choose one randomly
-        min_distance = min(rule_distances)
-        best_rules = [
-            rule
-            for rule, distance in zip(symbol.rules, rule_distances)
-            if distance == min_distance
-        ]
+        # Filter out unreachable rules
+        reachable_indices = [i for i, d in enumerate(rule_distances) if d is not None]
 
-        # If all rules have infinite distance, fall back to simplest rule
-        if min_distance == float("inf"):
+        if not reachable_indices:
+            # Fall back to the rule with the fewest symbols if none are reachable
             return min(symbol.rules, key=lambda r: len(r.symbols))
 
-        # Return a random rule among the best ones
+        # Choose the rule with the minimum distance among reachable ones
+        min_reachable_dist = min(rule_distances[i] for i in reachable_indices)
+        best_rules = [
+            symbol.rules[i]
+            for i in reachable_indices
+            if rule_distances[i] == min_reachable_dist
+        ]
+
         return random.choice(best_rules)
 
     def generate_ast(self, start_symbol: str = "program"):
