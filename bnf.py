@@ -76,6 +76,12 @@ class BnfParser:
         rule_name = self.input[1:end]
         self.input = self.input[end + 1 :]
 
+        # If the rule name is all uppercase, it's a special terminal token
+        if rule_name.isupper():
+            # Check if this name has been defined as a non-terminal already
+            if self.symbols.get(rule_name) is None:
+                self.terminals.add(Terminal(rule_name, is_token=True))
+
         return rule_name
 
     def assignment(self):
@@ -93,6 +99,9 @@ class BnfParser:
 
         if self.symbols.get(name) is None:
             self.symbols[name] = rule
+
+        # Remove it from terminals if it was previously added as a token terminal
+        self.terminals = {t for t in self.terminals if t.name != name}
 
         return rule
 

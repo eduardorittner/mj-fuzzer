@@ -72,9 +72,12 @@ class Terminal(Symbol):
     """Represents a terminal symbol in the grammar"""
 
     name: str
+    is_token: bool = False
 
     def generate(self, fuzzer: "Fuzzer", depth: int = 0) -> str:
         """Generate text representation of this terminal"""
+        if self.is_token:
+            return fuzzer.expand_symbol(self.name, depth)
         return self.name
 
 

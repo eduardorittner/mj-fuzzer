@@ -111,3 +111,17 @@ def test_actual_grammar():
     with open("mj.bnf", "r") as f:
         parser = BnfParser(f.read())
         parser.parse()
+
+
+def test_token_terminal_recognition():
+    parser = BnfParser('<rule> ::= <INT_LITERAL> | <ID>\n<ID> ::= "id"')
+    parser.parse()
+
+    # INT_LITERAL should be a terminal with is_token=True
+    int_terminal = [t for t in parser.terminals if t.name == "INT_LITERAL"][0]
+    assert int_terminal.is_token is True
+
+    # ID should NOT be in terminals because it is defined as a rule
+    id_terminals = [t for t in parser.terminals if t.name == "ID"]
+    assert len(id_terminals) == 0
+    assert "ID" in parser.symbols

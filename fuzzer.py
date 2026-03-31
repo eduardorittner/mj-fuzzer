@@ -49,27 +49,13 @@ class Fuzzer:
         # Look up the symbol
         symbol = self.symbols.get(symbol_name)
 
+        # If it's a special terminal token, generate its value
+        if isinstance(symbol, Terminal) and symbol.is_token:
+            return self._generate_token_value(symbol_name)
+
         # If symbol not found, generate a reasonable default value
         if symbol is None:
-            # For ID symbols, generate proper MiniJava identifiers
-            if symbol_name in ["ID", "identifier"]:
-                return self._generate_identifier()
-            # For common expression-like symbols, generate a reasonable expression
-            elif symbol_name in ["expression", "assignment_expression"]:
-                return f"{random.randint(1, 100)}"
-            # For literal types, generate appropriate values
-            elif symbol_name == "CHAR_LITERAL":
-                return f"'{chr(random.randint(97, 122))}'"  # Random lowercase letter
-            elif symbol_name == "INT_LITERAL":
-                return str(random.randint(0, 1000))
-            elif symbol_name == "STRING_LITERAL":
-                return f'"string{random.randint(1, 100)}"'
-            # For boolean literals, generate true or false
-            elif symbol_name == "boolean_literal":
-                return random.choice(["true", "false"])
-            # For other undefined symbols, treat as literal terminal
-            else:
-                return symbol_name
+            return self._generate_token_value(symbol_name)
 
         # Check depth limit to prevent infinite recursion
         if depth > self.max_depth:
@@ -88,6 +74,33 @@ class Fuzzer:
 
         # Generate text for the symbol
         return symbol.generate(self, depth + 1)
+
+    def _generate_token_value(self, symbol_name: str) -> str:
+        """
+        Generate a value for a token terminal or an undefined symbol.
+
+        :param symbol_name: Name of the symbol or token
+        :return: Generated text representation
+        """
+        # For ID symbols, generate proper MiniJava identifiers
+        if symbol_name in ["ID", "identifier"]:
+            return self._generate_identifier()
+        # For common expression-like symbols, generate a reasonable expression
+        elif symbol_name in ["expression", "assignment_expression"]:
+            return f"{random.randint(1, 100)}"
+        # For literal types, generate appropriate values
+        elif symbol_name == "CHAR_LITERAL":
+            return f"'{chr(random.randint(97, 122))}'"  # Random lowercase letter
+        elif symbol_name == "INT_LITERAL":
+            return str(random.randint(0, 1000))
+        elif symbol_name == "STRING_LITERAL":
+            return f'\"string{random.randint(1, 100)}\"'
+        # For boolean literals, generate true or false
+        elif symbol_name == "boolean_literal":
+            return random.choice(["true", "false"])
+        # For other undefined symbols, treat as literal terminal
+        else:
+            return symbol_name
 
     def _generate_identifier(self) -> str:
         """
